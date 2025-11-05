@@ -143,12 +143,10 @@ static void print_dec(unsigned long val)
     printstr(p, (buf + sizeof(buf) - p));
 }
 
-/* ============= q1_uf8 Declaration ============= */
+/* ============= uf8_to_uint32 Implementation ============= */
 extern uint32_t uf8_decode(uint8_t in);
 extern uint8_t uf8_encode(uint32_t in);
 
-/* ============= Test Suite ============= */
-/* Test encode/decode round-trip */
 static void test_uf8_to_uint32(void)
 {
     TEST_LOGGER("Test: uf8_to_uint32\n");
@@ -156,6 +154,7 @@ static void test_uf8_to_uint32(void)
     int32_t previous_value = -1;
     bool passed = true;
 
+    /*test 0 ~ 255*/
     for (int i = 0; i < 256; i++) {
         uint8_t fl = i;
         int32_t value = uf8_decode(fl);
@@ -169,8 +168,7 @@ static void test_uf8_to_uint32(void)
             print_hex(fl2);
             TEST_LOGGER("\n")
             
-            // printf("%02x: produces value %d but encodes back to %02x\n", fl,
-                //    value, fl2);
+            // printf("%02x: produces value %d but encodes back to %02x\n", fl, value, fl2); 
             passed = false;
         }
 
@@ -181,21 +179,20 @@ static void test_uf8_to_uint32(void)
             TEST_LOGGER(" <= previous_value ")
             print_dec(previous_value);
             TEST_LOGGER("\n")
-            // printf("%02x: value %d <= previous_value %d\n", fl, value,
-                //    previous_value);
+            // printf("%02x: value %d <= previous_value %d\n", fl, value, previous_value);
             passed = false;
         }
 
         previous_value = value;
     }
-    TEST_LOGGER("  q1_uf8: ");
+
     if(passed)
     {
-        TEST_LOGGER("PASSED\n")
+        TEST_LOGGER(" PASSED\n")
     }
     else
     {
-        TEST_LOGGER("FAILED\n")
+        TEST_LOGGER(" FAILED\n")
     }
 }
 
@@ -770,7 +767,7 @@ int main(void)
     TEST_LOGGER("  Instructions: ");
     print_dec((unsigned long) instret_elapsed);
     TEST_LOGGER("\n");
-    
+
     /* Test 6: uf8_to_uint32 */
     TEST_LOGGER("Test 6: bf16_special_cases\n");
     start_cycles = get_cycles();

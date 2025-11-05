@@ -39,8 +39,5 @@ run: $(EXEC)
 dump: $(EXEC)
 	$(OBJDUMP) -Ds $< | less
 
-dump2: $(EXEC)
-	$(OBJDUMP) -D $< | less
-
 clean:
 	rm -f $(EXEC) $(OBJS)
