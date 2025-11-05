@@ -1,109 +1,5 @@
-    .data
- text1:      .asciz ": produces value "
- text2:      .asciz " but encodes back to "
- text3:      .asciz ": value "
- text4:      .asciz " <= previous_value "
- text5:      .asciz "tests pass."
- text6:      .asciz "some tests failed."
+.section .text
 
- newline:    .asciz "\n"
-    
-    .text
-    .globl main
-main:
-    jal ra, test
-    beq a0, x0, fail       # a0 is passed flag if (passed == 0) means check fail
-    la    a0, text5
-    li    a7, 4
-    ecall                  # print "tests pass."
-    la    a0, newline
-    li    a7, 4 
-    ecall                  # print "\n"
-    li    a0, 0            # a0 return 1 means success
-    li    a7, 10
-    ecall                  # exit
-    
-test:
-    addi  sp, sp, -4
-    sw    ra, 0(sp)        # protect ra
-    addi  s0, x0, -1       # previous value   
-    li    s1, 1            # defult s1(passed flag) = 1 mean ture
-    li    s2, 0            # counter i
-    li    s3, 256          # end of counter i
-
-test_loop:
-    bgeu  s2, s3, return_passed
-    mv    a0, s2
-    jal   ra, uf8_decode   
-    mv    s4, a0           # s4 decode value
-    jal   ra, uf8_encode
-    mv    s5, a0           # the value has been decode and encode
-    
-check_1:
-    beq   s2, s5, check_2  # if s2 == s5 mean check_1 success 
-    mv    a0, s2
-    li    a7, 34           
-    ecall                  # print "i" in hex
-    la    a0, text1         
-    li    a7, 4
-    ecall                  # print "produces value"
-    mv    a0, s4           
-    li    a7, 1
-    ecall                  # print "value" in dec
-    la    a0, text2
-    li    a7, 4
-    ecall                  # print "but encodes back to"
-    mv    a0, s5           
-    li    a7, 34
-    ecall                  # print the "value" that has been decode and encode in hex
-    la    a0, newline
-    li    a7, 4
-    ecall                  # print "\n" for newline
-    li    s1, 0            # set s1 = 0 means passed = false
-    
-check_2:
-    bgt   s2, s0, check_done
-    mv    a0, s2
-    li    a7, 34
-    ecall                  # print "i" in hex
-    la    a0, text3
-    li    a7, 4            
-    ecall                  # print ": value"
-    mv    a0, s4           
-    li    a7, 1
-    ecall                  # print "value" in dec
-    la    a0, text4
-    li    a7, 4
-    ecall                  # print " <= previous_value "
-    mv    a0, s0           
-    li    a7, 34
-    ecall                  # print "previous_value value" in hex
-    la    a0, newline      
-    li    a7, 4
-    ecall                  # print newline
-    li    s1, 0            # set s1 = 0 means passed = false
-    
-check_done:
-    mv    s0, s2           # to check the increase
-    mv    a0, s1           # return passed
-    addi  s2, s2, 1
-    j     test_loop
-
-fail:
-    la    a0, text6
-    li    a7, 4
-    ecall                  # print "some tests failed."
-    la    a0, newline
-    li    a7, 4
-    ecall                  # print "\n"
-    li    a0, 1            # a0 return 1 means fail
-    li    a7, 10
-    ecall                  # exit
-    
-return_passed:
-    lw    ra, 0(sp)        # load back the return address from main:
-    addi  sp, sp, 4
-    ret
 clz:
     beq   a0, x0, zero      # if (x == 0) return 32
 
@@ -146,7 +42,9 @@ zero:
     ret
 
     
-    
+.globl uf8_decode
+.type uf8_decode,%function
+.align 2
 uf8_decode:
     andi  t0, a0, 0x0F     # t0 is mantissa
     srli  t1, a0, 4        # t1 is exponent
@@ -162,8 +60,12 @@ uf8_decode:
     add   a0, t0, t3       # fl = (mantissa << exponent) + offset    
     
     ret
-    
-    
+.size uf8_decode,.-uf8_decode
+
+
+.globl uf8_encode
+.type uf8_encode,%function
+.align 2
 uf8_encode:
     addi  sp, sp, -4
     sw    ra, 0(sp)        # because it will call CLZ in this function
@@ -233,4 +135,5 @@ ret_val:
 fast_return:
     lw ra, 0(sp)
     addi sp, sp, 4
-    ret
+    jr ra
+.size uf8_encode,.-uf8_encode

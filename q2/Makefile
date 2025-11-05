@@ -1,9 +1,9 @@
-include ../../../mk/toolchain.mk
+include ../../../../mk/toolchain.mk
 
-ARCH = -march=rv32izicsr
+ARCH = -march=rv32izicsr 
 LINKER_SCRIPT = linker.ld
 
-EMU ?= ../../../build/rv32emu
+EMU ?= ../../../../build/rv32emu
 
 AFLAGS = -g $(ARCH)
 CFLAGS = -g -march=rv32i_zicsr
@@ -17,7 +17,7 @@ OBJDUMP = $(CROSS_COMPILE)objdump
 
 OBJS = start.o main.o perfcounter.o chacha20_asm.o uf8_to_uint32_last_version.o
 
-.PHONY: all run dump clean
+.PHONY: all run dump dump2 clean
 
 all: $(EXEC)
 
@@ -32,12 +32,15 @@ $(EXEC): $(OBJS) $(LINKER_SCRIPT)
 
 run: $(EXEC)
 	@test -f $(EMU) || (echo "Error: $(EMU) not found" && exit 1)
-	@grep -q "ENABLE_ELF_LOADER=1" ../../../build/.config || (echo "Error: ENABLE_ELF_LOADER=1 not set" && exit 1)
-	@grep -q "ENABLE_SYSTEM=1" ../../../build/.config || (echo "Error: ENABLE_SYSTEM=1 not set" && exit 1)
+	@grep -q "ENABLE_ELF_LOADER=1" ../../../../build/.config || (echo "Error: ENABLE_ELF_LOADER=1 not set" && exit 1)
+	@grep -q "ENABLE_SYSTEM=1" ../../../../build/.config || (echo "Error: ENABLE_SYSTEM=1 not set" && exit 1)
 	$(EMU) $<
 
 dump: $(EXEC)
 	$(OBJDUMP) -Ds $< | less
+
+dump2: $(EXEC)
+	$(OBJDUMP) -D $< | less
 
 clean:
 	rm -f $(EXEC) $(OBJS)

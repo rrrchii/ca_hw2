@@ -143,6 +143,62 @@ static void print_dec(unsigned long val)
     printstr(p, (buf + sizeof(buf) - p));
 }
 
+/* ============= q1_uf8 Declaration ============= */
+extern uint32_t uf8_decode(uint8_t in);
+extern uint8_t uf8_encode(uint32_t in);
+
+/* ============= Test Suite ============= */
+/* Test encode/decode round-trip */
+static void test_uf8_to_uint32(void)
+{
+    TEST_LOGGER("Test: uf8_to_uint32\n");
+
+    int32_t previous_value = -1;
+    bool passed = true;
+
+    for (int i = 0; i < 256; i++) {
+        uint8_t fl = i;
+        int32_t value = uf8_decode(fl);
+        uint8_t fl2 = uf8_encode(value);
+
+        if (fl != fl2) {
+            print_hex(fl);
+            TEST_LOGGER(": produces value ")
+            print_dec(value);
+            TEST_LOGGER(" but encodes back to ")
+            print_hex(fl2);
+            TEST_LOGGER("\n")
+            
+            // printf("%02x: produces value %d but encodes back to %02x\n", fl,
+                //    value, fl2);
+            passed = false;
+        }
+
+        if (value <= previous_value) {
+            print_hex(fl);
+            TEST_LOGGER(": value ")
+            print_dec(value);
+            TEST_LOGGER(" <= previous_value ")
+            print_dec(previous_value);
+            TEST_LOGGER("\n")
+            // printf("%02x: value %d <= previous_value %d\n", fl, value,
+                //    previous_value);
+            passed = false;
+        }
+
+        previous_value = value;
+    }
+    TEST_LOGGER("  q1_uf8: ");
+    if(passed)
+    {
+        TEST_LOGGER("PASSED\n")
+    }
+    else
+    {
+        TEST_LOGGER("FAILED\n")
+    }
+}
+
 /* ============= BFloat16 Implementation ============= */
 
 typedef struct {
@@ -703,6 +759,24 @@ int main(void)
     start_instret = get_instret();
 
     test_bf16_special_cases();
+
+    end_cycles = get_cycles();
+    end_instret = get_instret();
+    cycles_elapsed = end_cycles - start_cycles;
+    instret_elapsed = end_instret - start_instret;
+
+    TEST_LOGGER("  Cycles: ");
+    print_dec((unsigned long) cycles_elapsed);
+    TEST_LOGGER("  Instructions: ");
+    print_dec((unsigned long) instret_elapsed);
+    TEST_LOGGER("\n");
+    
+    /* Test 6: uf8_to_uint32 */
+    TEST_LOGGER("Test 6: bf16_special_cases\n");
+    start_cycles = get_cycles();
+    start_instret = get_instret();
+
+    test_uf8_to_uint32();
 
     end_cycles = get_cycles();
     end_instret = get_instret();
