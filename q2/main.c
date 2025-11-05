@@ -159,8 +159,10 @@ static void test_uf8_to_uint32(void)
         uint8_t fl = i;
         int32_t value = uf8_decode(fl);
         uint8_t fl2 = uf8_encode(value);
-
+        
         if (fl != fl2) {
+
+            /* rewrite printf("%02x: produces value %d but encodes back to %02x\n", fl, value, fl2);*/
             print_hex(fl);
             TEST_LOGGER(": produces value ")
             print_dec(value);
@@ -168,18 +170,19 @@ static void test_uf8_to_uint32(void)
             print_hex(fl2);
             TEST_LOGGER("\n")
             
-            // printf("%02x: produces value %d but encodes back to %02x\n", fl, value, fl2); 
             passed = false;
         }
 
         if (value <= previous_value) {
+
+            /* rewrite printf("%02x: value %d <= previous_value %d\n", fl, value,previous_value); */
             print_hex(fl);
             TEST_LOGGER(": value ")
             print_dec(value);
             TEST_LOGGER(" <= previous_value ")
             print_dec(previous_value);
             TEST_LOGGER("\n")
-            // printf("%02x: value %d <= previous_value %d\n", fl, value, previous_value);
+            
             passed = false;
         }
 
@@ -769,7 +772,7 @@ int main(void)
     TEST_LOGGER("\n");
 
     /* Test 6: uf8_to_uint32 */
-    TEST_LOGGER("Test 6: bf16_special_cases\n");
+    TEST_LOGGER("Test 6: uf8_to_uint32\n");
     start_cycles = get_cycles();
     start_instret = get_instret();
 

@@ -1,139 +1,172 @@
-.section .text
+    .text
+    .globl  main
+main:
+    addi    x2, x2, -32
+    sw      x8, 0(x2)
+    sw      x9, 4(x2)
+    sw      x18, 8(x2)
+    sw      x19, 12(x2)
+    sw      x20, 16(x2)
 
-clz:
-    beq   a0, x0, zero      # if (x == 0) return 32
+    li      x5, 0x15
+    sw      x5, 20(x2)
+    sw      x5, 24(x2)
+    sw      x5, 28(x2)
 
-    li    t0, 0             # n = 0
-    
-    srli  t1, a0, 16
-    bne   t1, x0, chk8
-    addi  t0, t0, 16
-    slli  a0, a0, 16        # if ((x >> 16) == 0) { n += 16; x <<= 16; }
+    # Fix disk positions (BLANK 1-3: neutralize x5 effect)
+    # BLANK 1: Fix position at x2+20
+    sw      x0, 20(x2)
 
-chk8:
-    srli  t1, a0, 24
-    bne   t1, x0, chk4
-    addi  t0, t0, 8
-    slli  a0, a0, 8          # if ((x >> 24) == 0) { n += 8; x <<= 8; }
+    # BLANK 2: Fix position at x2+24
+    sw      x0, 24(x2)
 
-chk4:
-    srli  t1, a0, 28
-    bne   t1, x0, chk2
-    addi  t0, t0, 4
-    slli  a0, a0, 4          # if ((x >> 28) == 0) { n += 4; x <<= 4; }
+    # BLANK 3: Fix position at x2+28
+    sw      x0, 28(x2)
 
-chk2:
-    srli  t1, a0, 30
-    bne   t1, x0, chk1
-    addi  t0, t0, 2
-    slli  a0, a0, 2           # if ((x >> 30) == 0) { n += 2; x <<= 2; }
+    addi    x8, x0, 1
+game_loop:
+    # BLANK 4: Check loop termination (2^3 moves)
+    addi    x5, x0, 8
+    beq     x8, x5, finish_game
 
-chk1:
-    srli  t1, a0, 31
-    bne   t1, x0, ret
-    addi  t0, t0, 1           # if ((x >> 31) == 0) { n += 1; }
+    # Gray code formula: gray(n) = n XOR (n >> k)
+    # BLANK 5: What is k for Gray code?
+    srli    x5, x8, 1
 
-ret:
-    mv    a0, t0               # return n
-    ret
+    # BLANK 6: Complete Gray(n) calculation
+    xor     x6, x8, x5
 
-zero:
-    li    a0, 32
-    ret
+    # BLANK 7-8: Calculate previous value and its shift
+    addi    x7, x8, -1
+    srli    x28, x7, 1
 
-    
-.globl uf8_decode
-.type uf8_decode,%function
-.align 2
-uf8_decode:
-    andi  t0, a0, 0x0F     # t0 is mantissa
-    srli  t1, a0, 4        # t1 is exponent
-    
-    li    t2, 15
-    sub   t2, t2, t1       # t2 = 15 - exponent
-    
-    li    t3, 0x7FFF
-    srl   t3, t3, t2
-    slli  t3, t3, 4        # t3 is offset
-    
-    sll   t0, t0, t1       # mantissa << exponent
-    add   a0, t0, t3       # fl = (mantissa << exponent) + offset    
-    
-    ret
-.size uf8_decode,.-uf8_decode
+    # BLANK 9: Generate Gray(n-1)
+    xor     x7, x7, x28
 
+    # BLANK 10: Which bits changed?
+    xor     x5, x6, x7
 
-.globl uf8_encode
-.type uf8_encode,%function
-.align 2
-uf8_encode:
-    addi  sp, sp, -4
-    sw    ra, 0(sp)        # because it will call CLZ in this function
-    
-    li    t4, 16           # t4 = 16
-    bltu  a0, t4, fast_return    # if( value < 16 ) return value;
-    
-    mv    t5, a0           # t5 = value use t5 input clz
-    jal   ra, clz
-    mv    t0, a0           # t0 = lz
-    li    t1, 31
-    sub   t1, t1, t0       # t1 = msb
-    
-    li    t2, 0            # exponent = 0
-    li    t3, 0            # overflow = 0
-    
-    li    t4, 5            # t6 = 5
-    blt   t1, t4, after_adjust_down
-    addi  t2, t1, -4       # exponent = msb - 4
-    
-    li    t4, 15           # t6 = 15
-    bleu  t2, t4, exp_ok   # if(exp > 15)
-    li    t2, 15           # exp = 15
-    
-exp_ok:   
-    li     t4, 0            # t4 = counter e = 0
-    
-build_overflow:
-    bgeu   t4, t2, adjust_overflow
-    slli   t3, t3, 1       # overflow <<= 1
-    addi   t3, t3, 16      # (overflow << 1) + 16
-    addi   t4, t4, 1       # e ++
-    j      build_overflow
-    
-adjust_overflow:
+    # Initialize disk number
+    addi    x9, x0, 0
 
-adjust_down:
-    beq    t2, x0, after_adjust_down     # exp > 0
-    bgeu   t5, t3, after_adjust_down     # value < overflow
-    addi   t3, t3, -16                   # overflow - 16
-    srli   t3, t3, 1                     # (overflow - 16) >> 1
-    addi   t2, t2, -1                    # exp --
-    j      adjust_down
+    # BLANK 11: Mask for testing LSB
+    andi    x6, x5, 1
 
-after_adjust_down:
-    li     t6, 15
-    li     t4, 0
-    
-adjust_up:
-    bgeu   t2, t6, after_estimate_overflow
-    slli   t4, t3, 1                     # next_overflow = (overflow << 1)
-    addi   t4, t4, 16                    # next_overflow = (overflow << 1) + 16
-    blt    t5, t4, after_estimate_overflow
-    mv     t3, t4                        # overflow = next_overflow
-    addi   t2, t2, 1                     # exp ++
-    j      adjust_up
+    # BLANK 12: Branch if disk 0 moves
+    bne     x6, x0, disk_found
 
-after_estimate_overflow:
-    
-ret_val:
-    sub    t5, t5, t3
-    srl    t5, t5, t2                    # t5 is mantissa
-    
-    slli   a0, t2, 4
-    or     a0, a0, t5
-    
-fast_return:
-    lw ra, 0(sp)
-    addi sp, sp, 4
-    jr ra
-.size uf8_encode,.-uf8_encode
+    # BLANK 13: Set disk 1
+    addi    x9, x0, 1
+
+    # BLANK 14: Test second bit with proper mask
+    andi    x6, x5, 2
+    bne     x6, x0, disk_found
+
+    # BLANK 15: Last disk number
+    addi    x9, x0, 2
+
+disk_found:
+    # BLANK 16: Check impossible pattern (multiple bits)
+    andi    x30, x5, 5
+    addi    x31, x0, 5
+    beq     x30, x31, pattern_match
+    jal     x0, continue_move
+pattern_match:
+continue_move:
+
+    # BLANK 17: Word-align disk index (multiply by what?)
+    slli    x5, x9, 2
+
+    # BLANK 18: Base offset for disk array
+    addi    x5, x5, 20
+    add     x5, x2, x5
+    lw      x18, 0(x5)
+
+    bne     x9, x0, handle_large
+
+    # BLANK 19: Small disk moves by how many positions?
+    addi    x19, x18, 2
+
+    # BLANK 20: Number of pegs
+    addi    x6, x0, 3
+    blt     x19, x6, display_move
+    sub     x19, x19, x6
+    jal     x0, display_move
+
+handle_large:
+    # BLANK 21: Load reference disk position
+    lw      x6, 20(x2)
+
+    # BLANK 22: Sum of all peg indices (0+1+2)
+    addi    x19, x0, 3
+    sub     x19, x19, x18
+    sub     x19, x19, x6
+
+display_move:
+    la      x20, obdata
+    add     x5, x20, x18
+
+    # BLANK 23: Load byte from obfuscated data
+    lbu     x11, 0(x5)
+
+    # BLANK 24: Decode constant (0x6F)
+    li      x6, 0x6F
+    xor     x11, x11, x6
+
+    # BLANK 25: Final offset adjustment
+    addi    x11, x11, -0x12
+
+    add     x7, x20, x19
+    lbu     x12, 0(x7)
+    xor     x12, x12, x6
+    addi    x12, x12, -0x12
+
+    la      x10, str1
+    addi    x17, x0, 4
+    ecall
+    addi    x10, x9, 1
+    addi    x17, x0, 1
+    ecall
+    la      x10, str2
+    addi    x17, x0, 4
+    ecall
+    addi    x10, x11, 0
+    addi    x17, x0, 11
+    ecall
+    la      x10, str3
+    addi    x17, x0, 4
+    ecall
+    addi    x10, x12, 0
+    addi    x17, x0, 11
+    ecall
+    addi    x10, x0, 10
+    addi    x17, x0, 11
+    ecall
+
+    # BLANK 26: Calculate storage offset
+    slli    x5, x9, 2
+    addi    x5, x5, 20
+    add     x5, x2, x5
+
+    # BLANK 27: Update disk position
+    sw      x19, 0(x5)
+
+    # BLANK 28-29: Increment counter and loop
+    addi    x8, x8, 1
+    jal     x0, game_loop
+
+finish_game:
+    lw      x8, 0(x2)
+    lw      x9, 4(x2)
+    lw      x18, 8(x2)
+    lw      x19, 12(x2)
+    lw      x20, 16(x2)
+    addi    x2, x2, 32
+    addi    x17, x0, 10
+    ecall
+
+    .data
+obdata:     .byte   0x3c, 0x3b, 0x3a
+str1:       .asciz  "Move Disk "
+str2:       .asciz  " from "
+str3:       .asciz  " to "
