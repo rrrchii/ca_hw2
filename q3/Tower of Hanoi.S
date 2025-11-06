@@ -1,7 +1,7 @@
     .text
     .globl  main
 main:
-    addi    x2, x2, -32
+    addi    x2, x2, -32  # x2 = sp
     sw      x8, 0(x2)
     sw      x9, 4(x2)
     sw      x18, 8(x2)
