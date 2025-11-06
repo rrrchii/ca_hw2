@@ -37,14 +37,14 @@ game_loop:
     srli    x5, x8, 1
 
     # BLANK 6: Complete Gray(n) calculation
-    xor     x6, x8, x5
+    xor     x6, x8, x5  # x6 = Gray(n)
 
     # BLANK 7-8: Calculate previous value and its shift
     addi    x7, x8, -1
     srli    x28, x7, 1
 
     # BLANK 9: Generate Gray(n-1)
-    xor     x7, x7, x28
+    xor     x7, x7, x28  # x7 = Gray(n-1)
 
     # BLANK 10: Which bits changed?
     xor     x5, x6, x7
@@ -53,7 +53,7 @@ game_loop:
     addi    x9, x0, 0
 
     # BLANK 11: Mask for testing LSB
-    andi    x6, x5, 1
+    andi    x6, x5, 1  # 001確認動的是不是disk0
 
     # BLANK 12: Branch if disk 0 moves
     bne     x6, x0, disk_found
@@ -62,11 +62,11 @@ game_loop:
     addi    x9, x0, 1
 
     # BLANK 14: Test second bit with proper mask
-    andi    x6, x5, 2
+    andi    x6, x5, 2  # 010確認動的是不適disk1
     bne     x6, x0, disk_found
 
     # BLANK 15: Last disk number
-    addi    x9, x0, 2
+    addi    x9, x0, 2  #
 
 disk_found:
     # BLANK 16: Check impossible pattern (multiple bits)
