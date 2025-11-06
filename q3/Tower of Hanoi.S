@@ -15,12 +15,15 @@ main:
 
     # Fix disk positions (BLANK 1-3: neutralize x5 effect)
     # BLANK 1: Fix position at x2+20
+    # defult pos[0] = 0 smallest plate is at pool A
     sw      x0, 20(x2)
 
     # BLANK 2: Fix position at x2+24
+    # deuflt pos[1] = 0 medium plate is at pool A
     sw      x0, 24(x2)
 
     # BLANK 3: Fix position at x2+28
+    # defult pos[1] = 0 largest plate is at pool A
     sw      x0, 28(x2)
 
     addi    x8, x0, 1
