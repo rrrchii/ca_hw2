@@ -1,6 +1,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include "fast_rsqrt.h"
 
 #define printstr(ptr, length)                   \
     do {                                        \
@@ -143,6 +144,27 @@ static void print_dec(unsigned long val)
     printstr(p, (buf + sizeof(buf) - p));
 }
 
+static void print_dec_without_newline(unsigned long val)
+{
+    char buf[20];
+    char *p = buf + sizeof(buf) - 1;
+    char *end = p;
+
+    if (val == 0) {
+        *p = '0';
+        p--;
+    } else {
+        while (val > 0) {
+            *p = '0' + umod(val, 10);
+            p--;
+            val = udiv(val, 10);
+        }
+    }
+
+    p++;
+    printstr(p, (end - p + 1));
+}
+/* Tower of Hanoi */
 extern uint32_t tower_of_hanoi_v1(void);
 
 static void test_tower_of_hanoi_v1(void)
@@ -150,13 +172,83 @@ static void test_tower_of_hanoi_v1(void)
     uint32_t ret =  tower_of_hanoi_v1();
 }
 
+/* Fast Rsqrt */
+void fast_rsqrt_error(uint32_t input, uint32_t output, uint32_t expected, const char *expect_str)
+{
+    TEST_LOGGER("  Input:");
+    print_dec_without_newline(input);
+    TEST_LOGGER("  Output:");
+    print_dec_without_newline(output);
+    TEST_LOGGER("  Expected:");
+    print_dec_without_newline(expected);
+
+    // error percentage calculation
+    // error_percentage = (output - expected) / expected * 100;
+    uint32_t error = (output > expected) ? (output - expected) : (expected - output); // absolute value
+    error = udiv(error, expected);
+    uint32_t error_percentage = umul(error, 100);
+    TEST_LOGGER("  Error : ");
+    print_dec_without_newline(error_percentage);
+    TEST_LOGGER(" % ");
+    TEST_LOGGER(" \n ");
+
+}
+
+static void test_fast_rsqrt(void)
+{
+    uint64_t start_cycles, end_cycles, cycles_elapsed;
+    uint64_t start_instret, end_instret, instret_elapsed;
+
+    /* Test data */
+    uint32_t inputs[] = {1, 4, 9, 25, 64, 144, 256};
+    char *s_expect_values[] = {
+        "1.0",
+        "0.5",
+        "0.333",
+        "0.2",
+        "0.125",
+        "0.083",
+        "0.0625"
+    };
+
+    uint32_t expect_values[] = {
+        65536,
+        32768,
+        21845,
+        13107,
+        8192,
+        5461,
+        4096
+    };
+
+    for (int i = 0; i < sizeof(inputs) / sizeof(inputs[0]); i++) {
+        start_cycles = get_cycles();
+        start_instret = get_instret();
+
+        uint32_t result = fast_rsqrt(inputs[i]); // fast_rsqrt is in fast_rsqrt.c
+
+        end_cycles = get_cycles();
+        end_instret = get_instret();
+        cycles_elapsed = end_cycles - start_cycles;
+        instret_elapsed = end_instret - start_instret;
+
+        TEST_LOGGER(" Cycles: ");
+        print_dec_without_newline((unsigned long) cycles_elapsed);
+        TEST_LOGGER("  Instructions: ");
+        print_dec((unsigned long) instret_elapsed);
+
+        fast_rsqrt_error(inputs[i], result, expect_values[i], s_expect_values[i]);
+    }
+    TEST_LOGGER("\n=== Fast Rsqrt Test Completed ===\n");
+}
+
 int main(void)
 {
     uint64_t start_cycles, end_cycles, cycles_elapsed;
     uint64_t start_instret, end_instret, instret_elapsed;
 
-    /* Test : Tower of Hanoi */
-    TEST_LOGGER("Test : Tower of Hanoi\n");
+    /* Test1 : Tower of Hanoi */
+    TEST_LOGGER("Test1 : Tower of Hanoi\n");
     start_cycles = get_cycles();
     start_instret = get_instret();
 
@@ -170,6 +262,24 @@ int main(void)
     TEST_LOGGER("  Cycles: ");
     print_dec((unsigned long) cycles_elapsed);
     TEST_LOGGER("  Instructions: ");
+    print_dec((unsigned long) instret_elapsed);
+
+    /* Test2 : Fast Rsqrt */
+    TEST_LOGGER("Test2 : Fast Rsqrt\n");
+    start_cycles = get_cycles();
+    start_instret = get_instret();
+
+    test_fast_rsqrt();
+
+    end_cycles = get_cycles();
+    end_instret = get_instret();
+    
+    cycles_elapsed = end_cycles - start_cycles;
+    instret_elapsed = end_instret - start_instret;
+
+    TEST_LOGGER(" Total Cycles: ");
+    print_dec((unsigned long) cycles_elapsed);
+    TEST_LOGGER(" Total Instructions: ");
     print_dec((unsigned long) instret_elapsed);
 
     TEST_LOGGER("\n=== All Tests Completed ===\n");
