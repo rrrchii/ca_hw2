@@ -1,5 +1,7 @@
 #include <stdint.h>
 #include "fast_rsqrt.h"
+
+/*lookup table for predict exp part*/
 static const uint32_t rsqrt_table[32] = {
     65536, 46341, 32768, 23170, 16384,  /* 2^0 to 2^4 */
     11585,  8192,  5793,  4096,  2896,  /* 2^5 to 2^9 */
@@ -10,6 +12,7 @@ static const uint32_t rsqrt_table[32] = {
         2,     1                         /* 2^30, 2^31 */
 };
 
+/*multiply two 32-bit integers*/
 static uint64_t mul32(uint32_t a, uint32_t b)
 {
     uint64_t r = 0;
@@ -21,6 +24,7 @@ static uint64_t mul32(uint32_t a, uint32_t b)
     return r;
 }
 
+/*count leading zeros*/
 static int clz(uint32_t x)
 {
     if(!x) return 32;
@@ -33,6 +37,7 @@ static int clz(uint32_t x)
     return n;
 }
 
+/*fast rsqrt implementation*/
 uint32_t fast_rsqrt(uint32_t x)
 {
     if(x == 0) return 0xFFFFFFFF;
